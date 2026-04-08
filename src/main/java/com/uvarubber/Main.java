@@ -44,5 +44,10 @@ public class Main {
                 drc,
                 dryKg
         );
+        // 6. Launch the Graphical Interface
+        // We wrap this in 'invokeLater' to ensure the UI runs smoothly on its own thread
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            new com.uvarubber.view.CollectionFrame().setVisible(true);
+        });
     }
 }
