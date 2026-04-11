@@ -74,4 +74,33 @@ public class CollectionDAO {
             System.out.println("Error deleting record: " + e.getMessage());
         }
     }
+
+    public List<Object[]> getPaymentSummary(String startDate, String endDate) {
+        List<Object[]> reportData = new ArrayList<>();
+        String sql = "SELECT s.supplier_name, s.bank_name, s.account_no, SUM(c.dry_kg) as total_dry_kg " +
+                "FROM daily_collections c " +
+                "JOIN suppliers s ON c.supplier_id = s.supplier_id " +
+                "WHERE c.collection_date BETWEEN ? AND ? " +
+                "GROUP BY s.supplier_id, s.supplier_name, s.bank_name, s.account_no";
+
+        try (Connection conn = com.uvarubber.util.DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, startDate);
+            pstmt.setString(2, endDate);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                reportData.add(new Object[]{
+                        rs.getString("supplier_name"),
+                        rs.getString("bank_name"),
+                        rs.getString("account_no"),
+                        rs.getDouble("total_dry_kg")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return reportData;
+    }
 }
