@@ -94,6 +94,21 @@ public class CollectionFrame extends JFrame {
         btnSave.addActionListener(e -> saveData());
         buttonPanel.add(btnSave);
 
+        // New: Add Farmer Button
+        JButton btnAddFarmer = new JButton("ADD NEW FARMER");
+        styleButton(btnAddFarmer, new Color(70, 130, 180), new Dimension(200, 45)); // Steel Blue color
+        btnAddFarmer.addActionListener(e -> {
+            new SupplierFrame().setVisible(true);
+            // Optional: You might want to reload the combo box when the window closes
+        });
+        buttonPanel.add(btnAddFarmer);
+
+        // New: Payment Reports Button
+        JButton btnPayments = new JButton("PAYMENT REPORTS");
+        styleButton(btnPayments, new Color(123, 104, 238), new Dimension(200, 45)); // Slate Blue color
+        btnPayments.addActionListener(e -> new PaymentFrame().setVisible(true));
+        buttonPanel.add(btnPayments);
+
         btnDelete = new JButton("DELETE SELECTED");
         styleButton(btnDelete, DELETE_RED, new Dimension(200, 45));
         btnDelete.addActionListener(e -> deleteSelectedRecord());
