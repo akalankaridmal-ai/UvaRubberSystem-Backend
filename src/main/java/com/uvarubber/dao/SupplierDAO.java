@@ -1,53 +1,97 @@
-package com.uvarubber.dao;
+package com.uvarubber.view;
 
+import com.uvarubber.dao.SupplierDAO;
 import com.uvarubber.model.Supplier;
-import com.uvarubber.util.DatabaseConnection;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
-public class SupplierDAO {
+import javax.swing.*;
+import java.awt.*;
 
-    public boolean addSupplier(String name, String bank, String branch, String acc, String nic) {
-        String sql = "INSERT INTO suppliers (supplier_name, bank_name, branch_name, account_no, nic_no) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = com.uvarubber.util.DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+public class SupplierFrame extends JFrame {
+    private JTextField txtName, txtNIC, txtBank, txtBranch, txtAccount;
+    private final Color ENV_GREEN = new Color(34, 139, 34);
+    private final Font BOLD_FONT = new Font("Segoe UI", Font.BOLD, 14);
+    private SupplierDAO supplierDAO = new SupplierDAO();
 
-            pstmt.setString(1, name);
-            pstmt.setString(2, bank);
-            pstmt.setString(3, branch);
-            pstmt.setString(4, acc);
-            pstmt.setString(5, nic);
+    public SupplierFrame() {
+        setTitle("Uva Rubber - Farmer Registration");
+        setSize(500, 500);
+        setLayout(new BorderLayout(15, 15));
+        getContentPane().setBackground(Color.WHITE);
 
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        // Header
+        JLabel lblHeader = new JLabel("Register New Farmer", SwingConstants.CENTER);
+        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblHeader.setForeground(ENV_GREEN);
+        lblHeader.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+        add(lblHeader, BorderLayout.NORTH);
+
+        // Input Form
+        JPanel formPanel = new JPanel(new GridLayout(5, 2, 10, 20));
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 20, 40));
+
+        formPanel.add(createLabel("Full Name:"));
+        txtName = new JTextField();
+        formPanel.add(txtName);
+
+        formPanel.add(createLabel("NIC Number:"));
+        txtNIC = new JTextField();
+        formPanel.add(txtNIC);
+
+        formPanel.add(createLabel("Bank Name (e.g. BOC):"));
+        txtBank = new JTextField();
+        formPanel.add(txtBank);
+
+        formPanel.add(createLabel("Branch:"));
+        txtBranch = new JTextField();
+        formPanel.add(txtBranch);
+
+        formPanel.add(createLabel("Account Number:"));
+        txtAccount = new JTextField();
+        formPanel.add(txtAccount);
+
+        add(formPanel, BorderLayout.CENTER);
+
+        // Button Panel
+        JButton btnRegister = new JButton("REGISTER FARMER");
+        btnRegister.setBackground(ENV_GREEN);
+        btnRegister.setForeground(Color.WHITE);
+        btnRegister.setFont(BOLD_FONT);
+        btnRegister.setFocusPainted(false);
+        btnRegister.setPreferredSize(new Dimension(0, 50));
+
+        btnRegister.addActionListener(e -> registerSupplier());
+        add(btnRegister, BorderLayout.SOUTH);
+
+        setLocationRelativeTo(null); // Center on screen
     }
 
-    // Method to get all suppliers from the database
-    public List<Supplier> getAllSuppliers() {
-        List<Supplier> suppliers = new ArrayList<>();
-        String sql = "SELECT * FROM suppliers";
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(BOLD_FONT);
+        return label;
+    }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+    private void registerSupplier() {
+        String name = txtName.getText();
+        String nic = txtNIC.getText();
+        String bank = txtBank.getText();
+        String branch = txtBranch.getText();
+        String account = txtAccount.getText();
 
-            while (rs.next()) {
-                suppliers.add(new Supplier(
-                        rs.getInt("supplier_id"),
-                        rs.getString("supplier_name"),
-                        rs.getString("bank_name"),
-                        rs.getString("branch_name"),
-                        rs.getString("account_no"),
-                        rs.getString("nic_no")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (name.isEmpty() || account.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Name and Account Number are required!");
+            return;
         }
-        return suppliers;
+
+        // Call DAO to save (We will update the DAO method next)
+        boolean success = supplierDAO.addSupplier(name, bank, branch, account, nic);
+
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Farmer Registered Successfully!");
+            dispose(); // Close this window
+        } else {
+            JOptionPane.showMessageDialog(this, "Error saving to database.");
+        }
     }
 }
