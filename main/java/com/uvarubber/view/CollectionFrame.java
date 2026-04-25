@@ -103,6 +103,12 @@ public class CollectionFrame extends JFrame {
         });
         buttonPanel.add(btnAddFarmer);
 
+        // New: Payment Reports Button
+        JButton btnPayments = new JButton("PAYMENT REPORTS");
+        styleButton(btnPayments, new Color(123, 104, 238), new Dimension(200, 45)); // Slate Blue color
+        btnPayments.addActionListener(e -> new PaymentFrame().setVisible(true));
+        buttonPanel.add(btnPayments);
+
         btnDelete = new JButton("DELETE SELECTED");
         styleButton(btnDelete, DELETE_RED, new Dimension(200, 45));
         btnDelete.addActionListener(e -> deleteSelectedRecord());

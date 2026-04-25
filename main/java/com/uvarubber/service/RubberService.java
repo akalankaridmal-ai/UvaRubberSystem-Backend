@@ -18,7 +18,8 @@ public class RubberService {
      */
     public double calculateDryWeight(double liters, int metrolacReading) {
         double drc = calculateDRC(metrolacReading);
-        return (liters * drc) / 100;
+        double dryKg = (liters * drc) / 100.0;
+        return Math.round(dryKg * 100.0) / 100.0;
     }
 
     /**
