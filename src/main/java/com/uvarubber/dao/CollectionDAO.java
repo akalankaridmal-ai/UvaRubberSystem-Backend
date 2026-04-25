@@ -103,4 +103,33 @@ public class CollectionDAO {
         }
         return reportData;
     }
+    public List<Object[]> getCollectionsBySupplier(String name, String startDate, String endDate) {
+        List<Object[]> details = new ArrayList<>();
+        String sql = "SELECT collection_date, liters, drc_percentage, dry_kg " +
+                "FROM daily_collections c " +
+                "JOIN suppliers s ON c.supplier_id = s.supplier_id " +
+                "WHERE s.supplier_name = ? AND c.collection_date BETWEEN ? AND ? " +
+                "ORDER BY c.collection_date ASC";
+
+        try (Connection conn = com.uvarubber.util.DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, name);
+            pstmt.setString(2, startDate);
+            pstmt.setString(3, endDate);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                details.add(new Object[]{
+                        rs.getString("collection_date"),
+                        rs.getDouble("liters"),
+                        rs.getDouble("drc_percentage"),
+                        rs.getDouble("dry_kg")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
 }
