@@ -132,4 +132,17 @@ public class CollectionDAO {
         }
         return details;
     }
+    public Object[] getTodaySummary() {
+        String sql = "SELECT SUM(liters), SUM(dry_kg) FROM daily_collections WHERE collection_date = CURDATE()";
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return new Object[]{ rs.getDouble(1), rs.getDouble(2) };
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new Object[]{ 0.0, 0.0 };
+    }
 }

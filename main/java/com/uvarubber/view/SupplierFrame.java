@@ -87,11 +87,17 @@ public class SupplierFrame extends JFrame {
         // Call DAO to save (We will update the DAO method next)
         boolean success = supplierDAO.addSupplier(name, bank, branch, account, nic);
 
+        // Inside registerSupplier() in SupplierFrame.java
         if (success) {
             JOptionPane.showMessageDialog(this, "Farmer Registered Successfully!");
-            dispose(); // Close this window
-        } else {
-            JOptionPane.showMessageDialog(this, "Error saving to database.");
+
+            // Find the open CollectionFrame and tell it to reload the list
+            for (Frame frame : Frame.getFrames()) {
+                if (frame instanceof CollectionFrame) {
+                    ((CollectionFrame) frame).loadSuppliers();
+                }
+            }
+            dispose();
         }
     }
 }

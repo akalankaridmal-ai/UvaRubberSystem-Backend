@@ -27,6 +27,7 @@ public class PaymentFrame extends JFrame {
         setLayout(new BorderLayout(10, 10));
 
         // --- TOP: Filters ---
+        // --- TOP: Filters ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         topPanel.setBorder(BorderFactory.createTitledBorder("Cycle Details"));
 
@@ -39,13 +40,21 @@ public class PaymentFrame extends JFrame {
         topPanel.add(txtEndDate);
 
         topPanel.add(new JLabel("Standard Rate:"));
-        txtGlobalRate = new JTextField("575", 5); // Default rate
+        txtGlobalRate = new JTextField("575", 5);
         topPanel.add(txtGlobalRate);
+
+        // --- NEW: Bank Filter Dropdown ---
+        topPanel.add(new JLabel("Filter by Bank:"));
+        String[] banks = {"ALL", "BOC", "PPLS", "RDB", "NSB", "COM", "HNB"};
+        JComboBox<String> bankFilter = new JComboBox<>(banks);
+        topPanel.add(bankFilter);
 
         JButton btnCalculate = new JButton("Generate Summary");
         btnCalculate.setBackground(ENV_GREEN);
         btnCalculate.setForeground(Color.WHITE);
-        btnCalculate.addActionListener(e -> generateReport());
+
+        // Update: Now passing the selected bank from the dropdown
+        btnCalculate.addActionListener(e -> generateReport(bankFilter.getSelectedItem().toString()));
         topPanel.add(btnCalculate);
 
         add(topPanel, BorderLayout.NORTH);
@@ -130,33 +139,43 @@ public class PaymentFrame extends JFrame {
         bottomPanel.add(btnPrint);
 
         JButton btnExport = new JButton("Export to Bank List");
-        btnExport.addActionListener(e -> JOptionPane.showMessageDialog(this, "Exporting People's Bank Credit List..."));
+        styleButton(btnExport, new Color(70, 130, 180), new Dimension(200, 45)); // Steel Blue color
+        btnExport.addActionListener(e -> {
+            String selectedBank = bankFilter.getSelectedItem().toString();
+            if (selectedBank.equals("ALL")) {
+                JOptionPane.showMessageDialog(this, "Please select a specific bank (not 'ALL') to print a bank sheet.");
+            } else if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No data available to export. Please generate a summary first.");
+            } else {
+                printBankSheet(selectedBank, txtStartDate.getText(), txtEndDate.getText());
+            }
+        });
         bottomPanel.add(btnExport);
         add(bottomPanel, BorderLayout.SOUTH);
-
-        setLocationRelativeTo(null);
     }
 
-    private void generateReport() {
+    private void generateReport(String selectedBank) {
         tableModel.setRowCount(0);
-        String start = txtStartDate.getText();
-        String end = txtEndDate.getText();
-        double globalRate = Double.parseDouble(txtGlobalRate.getText());
+        double rate = Double.parseDouble(txtGlobalRate.getText());
+        List<Object[]> data = collectionDAO.getPaymentSummary(txtStartDate.getText(), txtEndDate.getText());
 
-        List<Object[]> data = collectionDAO.getPaymentSummary(start, end);
         for (Object[] row : data) {
-            double kg = (double) row[3];
-            double rate = Double.parseDouble(txtGlobalRate.getText());
-            double total = kg * rate;
+            String bankInRow = row[1].toString(); // This is the Bank Name from DB
 
-            tableModel.addRow(new Object[]{
-                    row[0],
-                    row[1],
-                    row[2],
-                    String.format("%.2f", kg), // Forces 2 decimal places for KG
-                    rate,
-                    String.format("%.2f", total) // Forces 2 decimal places for LKR
-            });
+            // Filter Logic: If "ALL" is selected, show everyone. Otherwise, only show matches.
+            if (selectedBank.equals("ALL") || bankInRow.equalsIgnoreCase(selectedBank)) {
+                double kg = (double) row[3];
+                double total = kg * rate;
+
+                tableModel.addRow(new Object[]{
+                        row[0],
+                        row[1],
+                        row[2],
+                        String.format("%.2f", kg),
+                        rate,
+                        formatCurrency(total) // Using our new space-separator format
+                });
+            }
         }
     }
 
@@ -215,10 +234,10 @@ public class PaymentFrame extends JFrame {
             g2d.drawString("---------------------------------", x, y); y += 15;
             g2d.drawString("Total Dry KG: " + String.format("%.2f", totalDryKg), x, y); y += 15;
             g2d.drawString("Bill Rate (+4): " + billRate, x, y); y += 15;
-            g2d.drawString("Gross Amount: " + String.format("%.2f", grossAmount), x, y); y += 15;
+            g2d.drawString("Gross Amount: " + formatCurrency(grossAmount), x, y); y += 15;
             g2d.drawString("Stamp Duty:  -" + String.format("%.2f", stampDuty), x, y); y += 15;
             g2d.setFont(new Font("Monospaced", Font.BOLD, 11));
-            g2d.drawString("NET PAYABLE:  LKR " + String.format("%.2f", netTotal), x, y); y += 30;
+            g2d.drawString("NET PAYABLE:  LKR " + formatCurrency(netTotal), x, y); y += 30;
 
             g2d.setFont(new Font("Monospaced", Font.ITALIC, 9));
             g2d.drawString("Authorized By: _________________", x, y);
@@ -244,5 +263,59 @@ public class PaymentFrame extends JFrame {
         symbols.setGroupingSeparator(' ');
         java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0.00", symbols);
         return df.format(amount);
+    }
+    public void printBankSheet(String bankName, String startDate, String endDate) {
+        PrinterJob job = PrinterJob.getPrinterJob();
+        job.setPrintable((graphics, pageFormat, pageIndex) -> {
+            if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
+
+            Graphics2D g2d = (Graphics2D) graphics;
+            g2d.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
+
+            int y = 40;
+            int x = 50;
+
+            g2d.setFont(new Font("Serif", Font.BOLD, 14));
+            g2d.drawString("Uva Rubber Collection Center", x, y); y += 20;
+            g2d.setFont(new Font("Serif", Font.PLAIN, 11));
+            g2d.drawString("To: The Manager, " + bankName, x, y); y += 15;
+            g2d.drawString("Date: " + endDate, x, y); y += 25;
+
+            g2d.drawString("Dear Sir/Madam,", x, y); y += 15;
+            g2d.drawString("Please credit the following accounts from our Account No: 347100100011767", x, y); y += 30;
+
+            // Header
+            g2d.setFont(new Font("Monospaced", Font.BOLD, 10));
+            g2d.drawString(String.format("%-25s %-20s %-15s", "Supplier Name", "Account No", "Amount (LKR)"), x, y);
+            y += 10;
+            g2d.drawString("----------------------------------------------------------------------", x, y);
+            y += 15;
+
+            g2d.setFont(new Font("Monospaced", Font.PLAIN, 10));
+            double grandTotal = 0;
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String name = tableModel.getValueAt(i, 0).toString();
+                String acc = tableModel.getValueAt(i, 2).toString();
+                String amountStr = tableModel.getValueAt(i, 5).toString().replace(" ", ""); // Remove spaces for math
+                double amount = Double.parseDouble(amountStr);
+                grandTotal += amount;
+
+                g2d.drawString(String.format("%-25s %-20s %-15s", name, acc, formatCurrency(amount)), x, y);
+                y += 15;
+            }
+
+            y += 10;
+            g2d.drawString("----------------------------------------------------------------------", x, y); y += 15;
+            g2d.setFont(new Font("Monospaced", Font.BOLD, 11));
+            g2d.drawString("TOTAL PAYABLE TO " + bankName + ": LKR " + formatCurrency(grandTotal), x, y); y += 40;
+
+            g2d.drawString("Authorized Signature: ___________________", x, y);
+
+            return Printable.PAGE_EXISTS;
+        });
+
+        if (job.printDialog()) {
+            try { job.print(); } catch (Exception e) { e.printStackTrace(); }
+        }
     }
 }

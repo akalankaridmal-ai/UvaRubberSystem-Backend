@@ -26,6 +26,7 @@ public class CollectionFrame extends JFrame {
     private JButton btnSave, btnDelete;
     private JTable historyTable;
     private DefaultTableModel tableModel;
+    private JLabel lblTodayLiters, lblTodayDryKg;
 
     // Backend Tools
     private RubberService rubberService = new RubberService();
@@ -126,7 +127,10 @@ public class CollectionFrame extends JFrame {
 
         String[] columns = {"ID", "Date", "Farmer", "Liters", "Metrolac", "Dry KG"};
         tableModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
         historyTable = new JTable(tableModel);
         historyTable.setRowHeight(30);
@@ -140,6 +144,50 @@ public class CollectionFrame extends JFrame {
 
         refreshTable();
         clearForm();
+
+        JPanel summaryPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
+        summaryPanel.setBackground(ENV_GREEN); // Using your Forest Green theme
+        summaryPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        lblTodayLiters = new JLabel("Today's Total Liters: 0.00 L");
+        lblTodayDryKg = new JLabel("Today's Total Dry KG: 0.00 kg");
+
+// Style them white to pop against the green background
+        Font summaryFont = new Font("Segoe UI", Font.BOLD, 14);
+        lblTodayLiters.setFont(summaryFont);
+        lblTodayLiters.setForeground(Color.WHITE);
+        lblTodayDryKg.setFont(summaryFont);
+        lblTodayDryKg.setForeground(Color.WHITE);
+
+        summaryPanel.add(lblTodayLiters);
+        summaryPanel.add(lblTodayDryKg);
+
+// Add it to the very bottom of the JFrame
+        add(summaryPanel, BorderLayout.SOUTH);
+        setVisible(true);
+
+
+    // ... (existing code at end of constructor)
+    refreshTable();
+
+    clearForm();
+
+    updateDashboard(); // <--- ADD THIS PIECE
+
+    // Note: You currently have 'add(summaryPanel, BorderLayout.SOUTH)'
+    // which overwrites your table section. I will fix that below.
+    setVisible(true);
+
+        // Create a wrapper for the bottom area
+        JPanel bottomArea = new JPanel(new BorderLayout());
+        bottomArea.add(tablePanel, BorderLayout.CENTER); // Table stays in the middle
+        bottomArea.add(summaryPanel, BorderLayout.SOUTH); // Dashboard stays at the very bottom
+
+        add(bottomArea, BorderLayout.SOUTH); // Add the whole thing to the frame
+
+        refreshTable();
+        clearForm();
+        updateDashboard();
         setVisible(true);
     }
 
@@ -158,9 +206,13 @@ public class CollectionFrame extends JFrame {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
-    private void loadSuppliers() {
+    // Change private to public in CollectionFrame.java
+    public void loadSuppliers() {
         allSuppliers = supplierDAO.getAllSuppliers();
-        for (Supplier s : allSuppliers) supplierCombo.addItem(s);
+        supplierCombo.removeAllItems(); // Clear old list
+        for (Supplier s : allSuppliers) {
+            supplierCombo.addItem(s);
+        }
     }
 
     private void setupSearchableCombo() {
@@ -204,6 +256,7 @@ public class CollectionFrame extends JFrame {
 
             collectionDAO.saveCollection(s.getId(), LocalDate.now().toString(), l, m, d, w);
             refreshTable();
+            updateDashboard();
             clearForm();
             JOptionPane.showMessageDialog(this, "Success!");
         } catch (Exception ex) {
@@ -223,6 +276,7 @@ public class CollectionFrame extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             collectionDAO.deleteCollection(id);
             refreshTable();
+            updateDashboard();
             JOptionPane.showMessageDialog(this, "Deleted.");
         }
     }
@@ -233,5 +287,15 @@ public class CollectionFrame extends JFrame {
         supplierCombo.setSelectedIndex(-1);
         supplierCombo.getEditor().setItem("");
         supplierCombo.requestFocus();
+    }
+
+    private void updateDashboard() {
+        Object[] summary = collectionDAO.getTodaySummary();
+        // Use 0.0 as default if the database returns null (empty day)
+        double totalLiters = (summary[0] != null) ? (double) summary[0] : 0.0;
+        double totalDry = (summary[1] != null) ? (double) summary[1] : 0.0;
+
+        lblTodayLiters.setText("Today's Total Liters: " + String.format("%.2f", totalLiters) + " L");
+        lblTodayDryKg.setText("Today's Total Dry KG: " + String.format("%.2f", totalDry) + " kg");
     }
 }
